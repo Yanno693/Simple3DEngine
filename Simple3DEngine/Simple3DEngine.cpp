@@ -149,50 +149,23 @@ class Mesh
 			scale = Vec3(1, 1, 1);
 		}
 
-		void add(const Triangle& tr)
-		{
-			triangles.push_back(tr);
-		}
+		void add(const Triangle& tr) { triangles.push_back(tr); }
 
-		void setPosition(const Vec3& _pos)
-		{
-			position = _pos;
-		}
+		void setPosition(const Vec3& _pos) { position = _pos; }
 
-		Vec3 getPosition() const
-		{
-			return position;
-		}
+		Vec3 getPosition() const { return position; }
 
-		void translate(const Vec3& _pos)
-		{
-			position += _pos;
-		}
+		void translate(const Vec3& _pos) { position += _pos; }
 
-		void setScale(const Vec3& _scale)
-		{
-			scale = _scale;
-		}
+		void setScale(const Vec3& _scale) { scale = _scale; }
 
-		Vec3 getScale() const
-		{
-			return scale;
-		}
+		Vec3 getScale() const { return scale; }
 
-		Triangle getTriangle(int i) const
-		{
-			return triangles[i];
-		}
+		Triangle getTriangle(int i) const { return triangles[i]; }
 
-		Triangle& operator[](const unsigned int i)
-		{
-			return triangles[i];
-		}
+		Triangle& operator[](const unsigned int i) { return triangles[i]; }
 
-		unsigned int size() const
-		{
-			return triangles.size();
-		}
+		unsigned int size() const { return triangles.size(); }
 
 		friend std::ostream& operator<< (std::ostream& stream, Mesh& m)
 		{
@@ -204,26 +177,28 @@ class Mesh
 class Matrix4x4
 {
 	private:
+		double* m[4];
 
-		double m[4][4];
-
-	public: 
-
+	public:
 		Matrix4x4()
 		{
 			for (int i = 0; i < 4; i++)
+			{
+				m[i] = new double[4];
 				for (int j = 0; j < 4; j++)
 					m[i][j] = 0.0;
+			}
 		}
 
-		void set(const int _i, const int _j, const double n)
+		~Matrix4x4()
 		{
-			m[_i][_j] = n;
+			for (int i = 0; i < 4; i++)
+				delete[] m[i];
 		}
 
-		double get(const int _i,const int _j) const
+		double* operator[](const unsigned int i)
 		{
-			return m[_i][_j];
+			return m[i];
 		}
 
 		Vec3 mul(const Vec3& v) const
@@ -241,6 +216,14 @@ class Matrix4x4
 			}
 
 			return res;
+		}
+
+		friend std::ostream& operator<< (std::ostream& stream, Matrix4x4& mx)
+		{
+			for (int i = 0; i < 4; i++)
+				stream << '[' << mx.m[i][0] << ',' << mx.m[i][1] << ',' << mx.m[i][2] << ',' << mx.m[i][3] << ']' << (i != 3 ? "\n" : " ");
+
+			return stream;
 		}
 };
 
@@ -270,8 +253,6 @@ class GameEngine : public olc::PixelGameEngine
 				{
 					tPosition[t] += m.getPosition() - camera;
 				}
-
-				std::cout << tPosition << std::endl;
 
 				Triangle tProjection = Triangle(
 					projection.mul(tPosition[0]),
@@ -307,10 +288,13 @@ class GameEngine : public olc::PixelGameEngine
 			camera = Vec3(0, 0, 0);
 		}
 
+		void addMesh(const Mesh& m)
+		{
+			mesh.push_back(m);
+		}
+
 		bool OnUserCreate() override
 		{
-			projection = Matrix4x4();
-
 			double fNear = 0.1;
 			double fFar = 1000.0;
 			double fov = 90.0;
@@ -318,11 +302,11 @@ class GameEngine : public olc::PixelGameEngine
 			double ar = ScreenWidth() / ScreenHeight();
 			double frad = 1.0 / tan(fov * 0.5 / 180.0 * 3.14159);
 
-			projection.set(0, 0, ar * frad);
-			projection.set(1, 1, frad);
-			projection.set(2, 2, fFar / (fFar - fNear));
-			projection.set(3, 2, (-fFar * fNear) / (fFar - fNear));
-			projection.set(2, 3, 1.0);
+			projection[0][0] = ar * frad;
+			projection[1][1] = frad;
+			projection[2][2] = fFar / (fFar - fNear);
+			projection[3][2] = (-fFar * fNear) / (fFar - fNear);
+			projection[2][3] = 1.0;
 			
 			Mesh m = Mesh();
 			
@@ -354,9 +338,9 @@ class GameEngine : public olc::PixelGameEngine
 			m3.translate(Vec3(2, 2, 2));
 			m3.setScale(Vec3(2, 2, 2));
 
-			mesh.push_back(m);
-			mesh.push_back(m2);
-			mesh.push_back(m3);
+			addMesh(m);
+			addMesh(m2);
+			addMesh(m3);
 
 			return true;
 		}
@@ -387,22 +371,32 @@ class GameEngine : public olc::PixelGameEngine
 				camera += Vec3(1, 0, 0);
 			}
 
-			//std::vector<std::thread> vt;
+			if (GetKey(olc::Key::SPACE).bPressed)
+			{
+				camera += Vec3(0, -1, 0);
+			}
+
+			if (GetKey(olc::Key::CTRL).bPressed)
+			{
+				camera += Vec3(0, 1, 0);
+			}
 
 			for (unsigned int i = 0; i < mesh.size(); i++)
 			{
 				show(mesh[i]);
 			}
 
-			/*for (unsigned int i = 0; i < mesh.size(); i++) // Not faster ? :/
+			/*std::vector<std::thread> vt;
+
+			for (unsigned int i = 0; i < mesh.size(); i++) // Not faster ? :/
 			{
-				vt.push_back(std::thread(&GameEngine::afficher, this, mesh[i]));//
+				vt.push_back(std::thread(&GameEngine::show, this, mesh[i]));//
 			}
 
 			for (unsigned int i = 0; i < mesh.size(); i++)
 			{
 				vt[i].join();
-			}*/ 
+			}*/
 
 			return true;
 		}
@@ -413,7 +407,7 @@ int main()
 	using namespace std;
 
 	GameEngine ge;
-	if (ge.Construct(400, 400, 2, 2))
+	if (ge.Construct(200, 200, 4, 4))
 		ge.Start();
 	else
 		cout << "Error" << endl;
