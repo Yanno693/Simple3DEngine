@@ -149,6 +149,70 @@ class Mesh
 			scale = Vec3(1, 1, 1);
 		}
 
+		// open mesh from Wavefront .obj file (with triangulated faces) (https://en.wikipedia.org/wiki/Wavefront_.obj_file) 
+		Mesh(std::string src)
+		{
+			position = Vec3(0, 0, 0);
+			scale = Vec3(1, 1, 1);
+
+			std::ifstream file;			
+			file.open(src.c_str());
+			if (file.is_open())
+			{
+				std::string s;
+				std::vector<Vec3> vP; // Values of each vertices of the mesh
+				std::vector<int> vT; // Indexes of the vertices in the previous array for each triangle
+				while (!file.eof())
+				{
+					std::getline(file, s);
+					if (!file.eof())
+					{						
+						if (s[0] == 'v')
+						{							
+							double x, y, z;
+							std::string::size_type c1, c2;
+
+							x = std::stod(s.substr(2),&c1);
+							y = std::stod(s.substr(2 + c1), &c2);
+							z = std::stod(s.substr(2 + c2 + c2));
+
+							Vec3 p = Vec3(x, y, z);
+							vP.push_back(p);
+						}
+
+						else if (s[0] == 'f')
+						{
+							int x, y, z;
+							std::string::size_type c1, c2;
+
+							x = std::stoi(s.substr(2), &c1); x -= 1;
+							y = std::stoi(s.substr(2 + (c1+1)), &c2); y -= 1;
+							z = std::stoi(s.substr(2 + (c1+c2+2))); z -= 1;
+
+							vT.push_back(x);
+							vT.push_back(y);
+							vT.push_back(z);
+						}
+					}
+
+					for (unsigned int i = 0; i < vT.size(); i += 3)
+					{
+						Triangle t = Triangle();
+						t[0] = vP[vT[i]];
+						t[1] = vP[vT[i + 1]];
+						t[2] = vP[vT[i + 2]];
+
+						triangles.push_back(t);
+					}
+				}
+			}
+			else
+			{
+				std::cout << "file could not open" << std::endl;
+				exit(1);
+			}
+		}
+
 		void add(const Triangle& tr) { triangles.push_back(tr); }
 
 		void setPosition(const Vec3& _pos) { position = _pos; }
@@ -264,7 +328,7 @@ class GameEngine : public olc::PixelGameEngine
 					tProjection[t] = tProjection[t] + Vec3(1, 1, 0);
 
 					tProjection[t].setX(tProjection[t].getX() * 0.5 * ScreenWidth());
-					tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight()); //+= Vec3(0.5 * ScreenWidth(), 0.5 * ScreenHeight(), 0);
+					tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight());
 				}
 
 				DrawTriangle(
@@ -341,6 +405,11 @@ class GameEngine : public olc::PixelGameEngine
 			addMesh(m);
 			addMesh(m2);
 			addMesh(m3);
+
+			Mesh prism = Mesh("simpleshape.obj");
+			prism.translate(Vec3(0, 2, 0));
+
+			addMesh(prism);
 
 			return true;
 		}
