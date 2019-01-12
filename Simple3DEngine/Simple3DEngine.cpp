@@ -194,16 +194,18 @@ class Mesh
 							vT.push_back(z);
 						}
 					}
+				}
 
-					for (unsigned int i = 0; i < vT.size(); i += 3)
-					{
-						Triangle t = Triangle();
-						t[0] = vP[vT[i]];
-						t[1] = vP[vT[i + 1]];
-						t[2] = vP[vT[i + 2]];
+				file.close();
 
-						triangles.push_back(t);
-					}
+				for (unsigned int i = 0; i < vT.size(); i += 3)
+				{
+					Triangle t = Triangle();
+					t[0] = vP[vT[i]];
+					t[1] = vP[vT[i + 1]];
+					t[2] = vP[vT[i + 2]];
+
+					triangles.push_back(t);
 				}
 			}
 			else
@@ -476,7 +478,7 @@ int main()
 	using namespace std;
 
 	GameEngine ge;
-	if (ge.Construct(200, 200, 4, 4))
+	if (ge.Construct(200, 160, 4, 4))
 		ge.Start();
 	else
 		cout << "Error" << endl;
