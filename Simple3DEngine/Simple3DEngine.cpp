@@ -1,5 +1,6 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
+#include <algorithm>
 //#include <iostream>
 
 // A 3D Vector with (x,y,z) coordinates
@@ -87,9 +88,14 @@ class Vec3
 			return *this;
 		}
 
+		double magnitude() const
+		{
+			return sqrt(x*x + y * y + z * z);
+		}
+
 		void normalize()
 		{
-			double w = sqrt(x*x + y*y + z*z);
+			double w = magnitude();
 			
 			if(w != 0.0)
 				(*this) /= w;
@@ -356,6 +362,8 @@ class GameEngine : public olc::PixelGameEngine
 
 		std::vector<Mesh> mesh;
 
+		std::vector<Triangle> distanceBuffer;
+
 		void show(const Mesh& m)
 		{
 			for (unsigned int i = 0; i < m.size(); i++)
@@ -379,55 +387,59 @@ class GameEngine : public olc::PixelGameEngine
 					tPosition[t] += m.getPosition() - camera;
 				}
 
-				/*Vec3 lookDirection = tPosition[0];
-				lookDirection.normalize();
-				Vec3 normal = tPosition.normal();*/	
-
 				if (tPosition.normal().dot(tPosition[0]) < 0)
 				{
-					Vec3 lightDirection = tPosition[0] - light;
-					lightDirection.normalize();
-					
-					double lightIntensity = -lightDirection.dot(tPosition.normal());
-					if (lightIntensity < 0.1)
-						lightIntensity = 0.1;
+					distanceBuffer.push_back(tPosition);
+				}
+			}
+		}
 
-					Triangle tProjection = Triangle(
-						projection.mul(tPosition[0]),
-						projection.mul(tPosition[1]),
-						projection.mul(tPosition[2]));
+		void generateFrame()
+		{
+			for (unsigned int i = 0; i < distanceBuffer.size(); i++)
+			{
+				Vec3 lightDirection = distanceBuffer[i][0] - light + camera;
+				lightDirection.normalize();
 
-					for (unsigned int t = 0; t < 3; t++)
-					{
-						tProjection[t] = tProjection[t] + Vec3(1, 1, 0);
+				double lightIntensity = -lightDirection.dot(distanceBuffer[i].normal());
+				if (lightIntensity < 0.1)
+					lightIntensity = 0.1;
 
-						tProjection[t].setX(tProjection[t].getX() * 0.5 * ScreenWidth());
-						tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight());
-					}
+				Triangle tProjection = Triangle(
+					projection.mul(distanceBuffer[i][0]),
+					projection.mul(distanceBuffer[i][1]),
+					projection.mul(distanceBuffer[i][2]));
 
-					if (lightIntensity > 0)
-					{
-						FillTriangle(
-							tProjection[0].getX(),
-							tProjection[0].getY(),
-							tProjection[1].getX(),
-							tProjection[1].getY(),
-							tProjection[2].getX(),
-							tProjection[2].getY(),
-							olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
-						);
-					}
-					
-					/*DrawTriangle(
+				for (unsigned int t = 0; t < 3; t++)
+				{
+					tProjection[t] = tProjection[t] + Vec3(1, 1, 0);
+
+					tProjection[t].setX(tProjection[t].getX() * 0.5 * ScreenWidth());
+					tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight());
+				}
+
+				if (lightIntensity > 0)
+				{
+					FillTriangle(
 						tProjection[0].getX(),
 						tProjection[0].getY(),
 						tProjection[1].getX(),
 						tProjection[1].getY(),
 						tProjection[2].getX(),
 						tProjection[2].getY(),
-						olc::GREEN
-					);*/
+						olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
+					);
 				}
+
+				DrawTriangle(
+					tProjection[0].getX(),
+					tProjection[0].getY(),
+					tProjection[1].getX(),
+					tProjection[1].getY(),
+					tProjection[2].getX(),
+					tProjection[2].getY(),
+					olc::GREEN
+				);
 			}
 		}
 
@@ -541,20 +553,46 @@ class GameEngine : public olc::PixelGameEngine
 
 			if (GetKey(olc::Key::M).bPressed)
 			{
-				for (unsigned int i = 0; i < mesh.size(); i++)
-					mesh[i].translate(Vec3(1, 0, 0));
+				//for (unsigned int i = 0; i < mesh.size(); i++)
+					mesh[0].translate(Vec3(1, 0, 0));
 			}
 
 			if (GetKey(olc::Key::K).bPressed)
 			{
-				for (unsigned int i = 0; i < mesh.size(); i++)
-					mesh[i].translate(Vec3(-1, 0, 0));
+				//for (unsigned int i = 0; i < mesh.size(); i++)
+					mesh[0].translate(Vec3(-1, 0, 0));
+			}
+
+			if (GetKey(olc::Key::O).bPressed)
+			{
+				//for (unsigned int i = 0; i < mesh.size(); i++)
+				mesh[0].translate(Vec3(0, 0, 1));
+			}
+
+			if (GetKey(olc::Key::L).bPressed)
+			{
+				//for (unsigned int i = 0; i < mesh.size(); i++)
+				mesh[0].translate(Vec3(0, 0, -1));
 			}
 
 			for (unsigned int i = 0; i < mesh.size(); i++)
 			{
 				show(mesh[i]);
 			}
+
+			std::sort(distanceBuffer.begin(), distanceBuffer.end(), [](Triangle& t1, Triangle& t2)
+			{
+				Vec3 centerT1 = (t1[0] + t1[1] + t1[2]) / 3.0;
+				Vec3 centerT2 = (t2[0] + t2[1] + t2[2]) / 3.0;
+
+				double dist1 = centerT1.magnitude();
+				double dist2 = centerT2.magnitude();
+
+				return dist1 > dist2;
+			});
+
+			generateFrame();
+			distanceBuffer.clear();
 
 			/*std::vector<std::thread> vt;
 
@@ -577,7 +615,7 @@ int main()
 	using namespace std;
 
 	GameEngine ge;
-	if (ge.Construct(320, 320, 2, 2))
+	if (ge.Construct(160, 160, 4, 4))
 		ge.Start();
 	else
 		cout << "Error" << endl;
