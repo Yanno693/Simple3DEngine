@@ -87,7 +87,20 @@ class Vec3
 			return *this;
 		}
 
-		friend std::ostream& operator<< (std::ostream& stream, Vec3& v)
+		void normalize()
+		{
+			double w = sqrt(x*x + y*y + z*z);
+			
+			if(w != 0.0)
+				(*this) /= w;
+		}
+
+		double dot(const Vec3& v)
+		{
+			return (x * v.getX() + y * v.getY() + z * v.getZ());
+		}
+
+		friend std::ostream& operator<< (std::ostream& stream, Vec3 v)
 		{
 			return stream << "(" << v.x << "," << v.y << "," << v.z << ")";
 		}
@@ -125,6 +138,22 @@ class Triangle
 		}
 
 		Vec3& operator[](const int i) { return p[i]; }
+
+		Vec3 normal()
+		{
+			Vec3 res, v1, v2;
+
+			v1 = p[1] - p[0];
+			v2 = p[2] - p[0];
+			
+			res.setX(v1.getY() * v2.getZ() - v1.getZ() * v2.getY());
+			res.setY(v1.getZ() * v2.getX() - v1.getX() * v2.getZ());
+			res.setZ(v1.getX() * v2.getY() - v1.getY() * v2.getX());
+
+			res.normalize();
+
+			return res;
+		}
 
 		friend std::ostream& operator<< (std::ostream& stream, Triangle& t)
 		{
@@ -320,28 +349,37 @@ class GameEngine : public olc::PixelGameEngine
 					tPosition[t] += m.getPosition() - camera;
 				}
 
-				Triangle tProjection = Triangle(
-					projection.mul(tPosition[0]),
-					projection.mul(tPosition[1]),
-					projection.mul(tPosition[2]) );
+				Vec3 lookDirection = tPosition[0] - camera;
+				lookDirection.normalize();
+				Vec3 normal = tPosition.normal();
+				if(i == 0)
+					std::cout << lookDirection << std::endl;
 
-				for (unsigned int t = 0; t < 3; t++)
+				if (normal.dot(lookDirection) < 0)
 				{
-					tProjection[t] = tProjection[t] + Vec3(1, 1, 0);
+					Triangle tProjection = Triangle(
+						projection.mul(tPosition[0]),
+						projection.mul(tPosition[1]),
+						projection.mul(tPosition[2]));
 
-					tProjection[t].setX(tProjection[t].getX() * 0.5 * ScreenWidth());
-					tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight());
+					for (unsigned int t = 0; t < 3; t++)
+					{
+						tProjection[t] = tProjection[t] + Vec3(1, 1, 0);
+
+						tProjection[t].setX(tProjection[t].getX() * 0.5 * ScreenWidth());
+						tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight());
+					}
+
+					DrawTriangle(
+						tProjection[0].getX(),
+						tProjection[0].getY(),
+						tProjection[1].getX(),
+						tProjection[1].getY(),
+						tProjection[2].getX(),
+						tProjection[2].getY(),
+						olc::BLACK
+					);
 				}
-
-				DrawTriangle(
-					tProjection[0].getX(),
-					tProjection[0].getY(),
-					tProjection[1].getX(),
-					tProjection[1].getY(),
-					tProjection[2].getX(),
-					tProjection[2].getY(),
-					olc::BLACK
-				);
 			}
 		}
 
@@ -402,16 +440,16 @@ class GameEngine : public olc::PixelGameEngine
 			Mesh m3 = m;
 
 			m3.translate(Vec3(2, 2, 2));
-			m3.setScale(Vec3(2, 2, 2));
+			//m3.setScale(Vec3(2, 2, 2));
 
-			addMesh(m);
-			addMesh(m2);
+			//addMesh(m);
+			//addMesh(m2);
 			addMesh(m3);
 
 			Mesh prism = Mesh("simpleshape.obj");
 			prism.translate(Vec3(0, 2, 0));
 
-			addMesh(prism);
+			//addMesh(prism);
 
 			return true;
 		}
@@ -452,6 +490,18 @@ class GameEngine : public olc::PixelGameEngine
 				camera += Vec3(0, 1, 0);
 			}
 
+			if (GetKey(olc::Key::M).bPressed)
+			{
+				for (int i = 0; i < mesh.size(); i++)
+					mesh[i].translate(Vec3(1, 0, 0));
+			}
+
+			if (GetKey(olc::Key::K).bPressed)
+			{
+				for (int i = 0; i < mesh.size(); i++)
+					mesh[i].translate(Vec3(-1, 0, 0));
+			}
+
 			for (unsigned int i = 0; i < mesh.size(); i++)
 			{
 				show(mesh[i]);
@@ -478,7 +528,7 @@ int main()
 	using namespace std;
 
 	GameEngine ge;
-	if (ge.Construct(200, 160, 4, 4))
+	if (ge.Construct(160, 160, 4, 4))
 		ge.Start();
 	else
 		cout << "Error" << endl;
