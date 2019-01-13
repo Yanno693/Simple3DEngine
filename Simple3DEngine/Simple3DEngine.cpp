@@ -95,6 +95,36 @@ class Vec3
 				(*this) /= w;
 		}
 
+		void rotateX(const double angle) // angle in rad
+		{
+			double _y, _z;
+			_y = y;
+			_z = z;
+			
+			y = _y * cos(angle) + _z * sin(angle);
+			z = _y * (-sin(angle)) + _z * cos(angle);
+		}
+
+		void rotateY(const double angle) // angle in rad
+		{
+			double _x, _z;
+			_x = x;
+			_z = z;
+
+			x = _x * cos(angle) + _z * (-sin(angle));
+			z = _x * sin(angle) + _z * cos(angle);
+		}
+
+		void rotateZ(const double angle) // angle in rad
+		{
+			double _x, _y;
+			_x = x;
+			_y = y;
+
+			x = _x * cos(angle) + _y * sin(angle);
+			y = _x * (-sin(angle)) + _y * cos(angle);
+		}
+
 		double dot(const Vec3& v)
 		{
 			return (x * v.getX() + y * v.getY() + z * v.getZ());
@@ -269,13 +299,13 @@ class Mesh
 };
 
 // A 4x4 Matrix (for projection of a point on the screen)
-class Matrix4x4
+class Matrix4
 {
 	private:
 		double* m[4];
 
 	public:
-		Matrix4x4()
+		Matrix4()
 		{
 			for (int i = 0; i < 4; i++)
 			{
@@ -284,17 +314,14 @@ class Matrix4x4
 					m[i][j] = 0.0;
 			}
 		}
-
-		~Matrix4x4()
+	
+		~Matrix4()
 		{
 			for (int i = 0; i < 4; i++)
 				delete[] m[i];
 		}
 
-		double* operator[](const unsigned int i)
-		{
-			return m[i];
-		}
+		double* operator[](const unsigned int i) { return m[i]; }
 
 		Vec3 mul(const Vec3& v) const
 		{
@@ -306,28 +333,26 @@ class Matrix4x4
 			double w = v.getX() * m[0][3] + v.getY() * m[1][3] + v.getZ() * m[2][3] + m[3][3];
 
 			if (w != 0.0)
-			{
 				res /= w;
-			}
 
 			return res;
 		}
 
-		friend std::ostream& operator<< (std::ostream& stream, Matrix4x4& mx)
+		friend std::ostream& operator<< (std::ostream& stream, Matrix4& mx)
 		{
 			for (int i = 0; i < 4; i++)
 				stream << '[' << mx.m[i][0] << ',' << mx.m[i][1] << ',' << mx.m[i][2] << ',' << mx.m[i][3] << ']' << (i != 3 ? "\n" : " ");
-
-			return stream;
+				return stream;
 		}
 };
 
 class GameEngine : public olc::PixelGameEngine
 {
 	private:
-		Matrix4x4 projection;
+		Matrix4 projection;
 		float delta;
 		Vec3 camera;
+		Vec3 light;
 
 		std::vector<Mesh> mesh;
 
@@ -342,6 +367,11 @@ class GameEngine : public olc::PixelGameEngine
 					tScale[t].setY(m.getTriangle(i)[t].getY() * m.getScale().getY());
 					tScale[t].setZ(m.getTriangle(i)[t].getZ() * m.getScale().getZ());
 				}
+
+				for (unsigned int t = 0; t < 3; t++)
+				{
+					tScale[t].rotateZ(delta * 0.5);
+				}
 				
 				Triangle tPosition = tScale;
 				for (unsigned int t = 0; t < 3; t++)
@@ -351,10 +381,17 @@ class GameEngine : public olc::PixelGameEngine
 
 				/*Vec3 lookDirection = tPosition[0];
 				lookDirection.normalize();
-				Vec3 normal = tPosition.normal();*/
-				
+				Vec3 normal = tPosition.normal();*/	
+
 				if (tPosition.normal().dot(tPosition[0]) < 0)
 				{
+					Vec3 lightDirection = tPosition[0] - light;
+					lightDirection.normalize();
+					
+					double lightIntensity = -lightDirection.dot(tPosition.normal());
+					if (lightIntensity < 0.1)
+						lightIntensity = 0.1;
+
 					Triangle tProjection = Triangle(
 						projection.mul(tPosition[0]),
 						projection.mul(tPosition[1]),
@@ -368,15 +405,28 @@ class GameEngine : public olc::PixelGameEngine
 						tProjection[t].setY(tProjection[t].getY() * 0.5 * ScreenHeight());
 					}
 
-					DrawTriangle(
+					if (lightIntensity > 0)
+					{
+						FillTriangle(
+							tProjection[0].getX(),
+							tProjection[0].getY(),
+							tProjection[1].getX(),
+							tProjection[1].getY(),
+							tProjection[2].getX(),
+							tProjection[2].getY(),
+							olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
+						);
+					}
+					
+					/*DrawTriangle(
 						tProjection[0].getX(),
 						tProjection[0].getY(),
 						tProjection[1].getX(),
 						tProjection[1].getY(),
 						tProjection[2].getX(),
 						tProjection[2].getY(),
-						olc::BLACK
-					);
+						olc::GREEN
+					);*/
 				}
 			}
 		}
@@ -387,7 +437,8 @@ class GameEngine : public olc::PixelGameEngine
 		{
 			sAppName = "Easy Fast Game Engine";
 			delta = 0.0;
-			camera = Vec3(0, 0, 0);
+			camera = Vec3(0, 0, -3);
+			light = Vec3(-3, -10, 4);
 		}
 
 		void addMesh(const Mesh& m)
@@ -454,7 +505,7 @@ class GameEngine : public olc::PixelGameEngine
 
 		bool OnUserUpdate(float elapsedTime) override
 		{
-			FillRect(0, 0, ScreenWidth(), ScreenHeight(), olc::WHITE);
+			FillRect(0, 0, ScreenWidth(), ScreenHeight(), olc::BLACK);
 
 			delta += 1.0f * elapsedTime;
 
@@ -490,13 +541,13 @@ class GameEngine : public olc::PixelGameEngine
 
 			if (GetKey(olc::Key::M).bPressed)
 			{
-				for (int i = 0; i < mesh.size(); i++)
+				for (unsigned int i = 0; i < mesh.size(); i++)
 					mesh[i].translate(Vec3(1, 0, 0));
 			}
 
 			if (GetKey(olc::Key::K).bPressed)
 			{
-				for (int i = 0; i < mesh.size(); i++)
+				for (unsigned int i = 0; i < mesh.size(); i++)
 					mesh[i].translate(Vec3(-1, 0, 0));
 			}
 
@@ -526,7 +577,7 @@ int main()
 	using namespace std;
 
 	GameEngine ge;
-	if (ge.Construct(160, 160, 4, 4))
+	if (ge.Construct(320, 320, 2, 2))
 		ge.Start();
 	else
 		cout << "Error" << endl;
