@@ -349,13 +349,11 @@ class GameEngine : public olc::PixelGameEngine
 					tPosition[t] += m.getPosition() - camera;
 				}
 
-				Vec3 lookDirection = tPosition[0] - camera;
+				/*Vec3 lookDirection = tPosition[0];
 				lookDirection.normalize();
-				Vec3 normal = tPosition.normal();
-				if(i == 0)
-					std::cout << lookDirection << std::endl;
-
-				if (normal.dot(lookDirection) < 0)
+				Vec3 normal = tPosition.normal();*/
+				
+				if (tPosition.normal().dot(tPosition[0]) < 0)
 				{
 					Triangle tProjection = Triangle(
 						projection.mul(tPosition[0]),
@@ -440,16 +438,16 @@ class GameEngine : public olc::PixelGameEngine
 			Mesh m3 = m;
 
 			m3.translate(Vec3(2, 2, 2));
-			//m3.setScale(Vec3(2, 2, 2));
+			m3.setScale(Vec3(2, 2, 2));
 
-			//addMesh(m);
-			//addMesh(m2);
+			addMesh(m);
+			addMesh(m2);
 			addMesh(m3);
 
 			Mesh prism = Mesh("simpleshape.obj");
 			prism.translate(Vec3(0, 2, 0));
 
-			//addMesh(prism);
+			addMesh(prism);
 
 			return true;
 		}
