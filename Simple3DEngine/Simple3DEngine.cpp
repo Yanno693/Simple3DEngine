@@ -357,7 +357,8 @@ class GameEngine : public olc::PixelGameEngine
 	private:
 		Matrix4 projection;
 		float delta;
-		Vec3 camera;
+		Vec3 cameraPosition;
+		Vec3 cameraRotation;
 		Vec3 light;
 
 		std::vector<Mesh> mesh;
@@ -376,15 +377,22 @@ class GameEngine : public olc::PixelGameEngine
 					tScale[t].setZ(m.getTriangle(i)[t].getZ() * m.getScale().getZ());
 				}
 
-				for (unsigned int t = 0; t < 3; t++)
+				/*for (unsigned int t = 0; t < 3; t++)
 				{
 					tScale[t].rotateZ(delta * 0.5);
-				}
+				}*/
 				
 				Triangle tPosition = tScale;
 				for (unsigned int t = 0; t < 3; t++)
 				{
-					tPosition[t] += m.getPosition() - camera;
+					tPosition[t] += m.getPosition() - cameraPosition;
+				}
+
+				for (unsigned int t = 0; t < 3; t++)
+				{
+					tPosition[t].rotateX(-cameraRotation.getX());
+					tPosition[t].rotateY(-cameraRotation.getY());
+					tPosition[t].rotateZ(-cameraRotation.getZ());
 				}
 
 				if (tPosition.normal().dot(tPosition[0]) < 0)
@@ -398,7 +406,12 @@ class GameEngine : public olc::PixelGameEngine
 		{
 			for (unsigned int i = 0; i < distanceBuffer.size(); i++)
 			{
-				Vec3 lightDirection = distanceBuffer[i][0] - light + camera;
+				Vec3 lightRotate = light;
+				lightRotate.rotateX(-cameraRotation.getX());
+				lightRotate.rotateY(-cameraRotation.getY());
+				lightRotate.rotateZ(-cameraRotation.getZ());
+				
+				Vec3 lightDirection = distanceBuffer[i][0] - lightRotate + cameraPosition;
 				lightDirection.normalize();
 
 				double lightIntensity = -lightDirection.dot(distanceBuffer[i].normal());
@@ -431,7 +444,7 @@ class GameEngine : public olc::PixelGameEngine
 					);
 				}
 
-				DrawTriangle(
+				/*DrawTriangle(
 					tProjection[0].getX(),
 					tProjection[0].getY(),
 					tProjection[1].getX(),
@@ -439,7 +452,7 @@ class GameEngine : public olc::PixelGameEngine
 					tProjection[2].getX(),
 					tProjection[2].getY(),
 					olc::GREEN
-				);
+				);*/
 			}
 		}
 
@@ -449,7 +462,8 @@ class GameEngine : public olc::PixelGameEngine
 		{
 			sAppName = "Easy Fast Game Engine";
 			delta = 0.0;
-			camera = Vec3(0, 0, -3);
+			cameraPosition = Vec3(0, 0, -3);
+			cameraRotation = Vec3(0, 0, 0);
 			light = Vec3(-3, -10, 4);
 		}
 
@@ -512,6 +526,10 @@ class GameEngine : public olc::PixelGameEngine
 
 			addMesh(prism);
 
+			/*Mesh teapot = Mesh("teapot.obj");
+			teapot.translate(Vec3(0, 0, 5));
+			addMesh(teapot);*/
+
 			return true;
 		}
 
@@ -521,36 +539,26 @@ class GameEngine : public olc::PixelGameEngine
 
 			delta += 1.0f * elapsedTime;
 
+			// Camera Mouvement
 			if (GetKey(olc::Key::UP).bPressed)
-			{
-				camera += Vec3(0, 0, 1);
-			}
+				cameraPosition += Vec3(0, 0, 1);
 
 			if (GetKey(olc::Key::DOWN).bPressed)
-			{
-				camera += Vec3(0, 0, -1);
-			}
+				cameraPosition += Vec3(0, 0, -1);
 
 			if (GetKey(olc::Key::LEFT).bPressed)
-			{
-				camera += Vec3(-1, 0, 0);
-			}
+				cameraPosition += Vec3(-1, 0, 0);
 
 			if (GetKey(olc::Key::RIGHT).bPressed)
-			{
-				camera += Vec3(1, 0, 0);
-			}
+				cameraPosition += Vec3(1, 0, 0);
 
 			if (GetKey(olc::Key::SPACE).bPressed)
-			{
-				camera += Vec3(0, -1, 0);
-			}
+				cameraPosition += Vec3(0, -1, 0);
 
 			if (GetKey(olc::Key::CTRL).bPressed)
-			{
-				camera += Vec3(0, 1, 0);
-			}
+				cameraPosition += Vec3(0, 1, 0);
 
+			// Objects Mouvement
 			if (GetKey(olc::Key::M).bPressed)
 			{
 				//for (unsigned int i = 0; i < mesh.size(); i++)
@@ -575,10 +583,27 @@ class GameEngine : public olc::PixelGameEngine
 				mesh[0].translate(Vec3(0, 0, -1));
 			}
 
+			// Camera Rotation
+			if (GetKey(olc::Key::Z).bPressed)
+				cameraRotation -= Vec3(0.1, 0, 0);
+
+			if (GetKey(olc::Key::S).bPressed)
+				cameraRotation += Vec3(0.1, 0, 0);
+
+			if (GetKey(olc::Key::Q).bPressed)
+				cameraRotation += Vec3(0, 0.1, 0);
+
+			if (GetKey(olc::Key::D).bPressed)
+				cameraRotation -= Vec3(0, 0.1, 0);
+			
+			if (GetKey(olc::Key::A).bPressed)
+				cameraRotation += Vec3(0, 0, 0.1);
+
+			if (GetKey(olc::Key::E).bPressed)
+				cameraRotation -= Vec3(0, 0, 0.1);
+
 			for (unsigned int i = 0; i < mesh.size(); i++)
-			{
 				show(mesh[i]);
-			}
 
 			std::sort(distanceBuffer.begin(), distanceBuffer.end(), [](Triangle& t1, Triangle& t2)
 			{
