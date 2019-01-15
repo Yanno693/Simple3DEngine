@@ -364,6 +364,8 @@ class GameEngine : public olc::PixelGameEngine
 		std::vector<Mesh> mesh;
 
 		std::vector<Triangle> distanceBuffer;
+		//std::vector<>
+
 
 		void show(const Mesh& m)
 		{
@@ -401,8 +403,97 @@ class GameEngine : public olc::PixelGameEngine
 				}
 			}
 		}
+		
+		void clipping(Triangle& t, double lightIntensity)
+		{
+			std::vector<int> outIndexes;
+			for (unsigned int v = 0; v < 3; v++)
+			{
+				if (t[v].getX() < 0 || t[v].getX() > ScreenWidth() || t[v].getY() < 0 || t[v].getY() > ScreenHeight())
+					outIndexes.push_back(v);
+			}
 
-		void generateFrame()
+			// This will be a recursif function i guess, so i need to verify every possibilities
+			// If 0, ok
+			if (outIndexes.size() == 0)
+			{
+				FillTriangle(
+					t[0].getX(),
+					t[0].getY(),
+					t[1].getX(),
+					t[1].getY(),
+					t[2].getX(),
+					t[2].getY(),
+					olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
+				);
+			}
+			else if (outIndexes.size() == 1)
+			{
+				if (t[outIndexes[0]].getX < 0.0) // Left
+				{
+
+				}
+				else if (t[outIndexes[0]].getX > ScreenWidth()) // Right
+				{
+
+				}
+				else if (t[outIndexes[0]].getY < 0.0) // Up
+				{
+
+				}
+				else if (t[outIndexes[0]].getX > ScreenHeight()) // Down
+				{
+
+				}
+			}
+			else if (outIndexes.size() == 2)
+			{
+			
+			}
+			// If 1, delete one vertex, create two triangles
+			// If 2, delete two vertices, create only one triangle
+			// if 3, just delete the triangle
+		}
+
+		void drawProjection(Triangle& tProjection, double lightIntensity)
+		{
+		
+			int outVertices = 0;
+			for (unsigned int v = 0; v < 3; v++)
+			{
+				if (tProjection[v].getX() < 0.0 || tProjection[v].getX() > ScreenWidth() || tProjection[v].getY() < 0.0 || tProjection[v].getY() > ScreenHeight())
+					outVertices++;
+			}
+
+			if (outVertices > 0)
+			{
+				clipping(tProjection , lightIntensity);
+			}
+			else
+			{
+				FillTriangle(
+					tProjection[0].getX(),
+					tProjection[0].getY(),
+					tProjection[1].getX(),
+					tProjection[1].getY(),
+					tProjection[2].getX(),
+					tProjection[2].getY(),
+					olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
+				);
+
+				DrawTriangle(
+						tProjection[0].getX(),
+						tProjection[0].getY(),
+						tProjection[1].getX(),
+						tProjection[1].getY(),
+						tProjection[2].getX(),
+						tProjection[2].getY(),
+						olc::GREEN
+					);
+			}
+		}
+
+		void generateProjection()
 		{
 			for (unsigned int i = 0; i < distanceBuffer.size(); i++)
 			{
@@ -433,26 +524,8 @@ class GameEngine : public olc::PixelGameEngine
 
 				if (lightIntensity > 0)
 				{
-					FillTriangle(
-						tProjection[0].getX(),
-						tProjection[0].getY(),
-						tProjection[1].getX(),
-						tProjection[1].getY(),
-						tProjection[2].getX(),
-						tProjection[2].getY(),
-						olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
-					);
+					drawProjection(tProjection, lightIntensity);
 				}
-
-				/*DrawTriangle(
-					tProjection[0].getX(),
-					tProjection[0].getY(),
-					tProjection[1].getX(),
-					tProjection[1].getY(),
-					tProjection[2].getX(),
-					tProjection[2].getY(),
-					olc::GREEN
-				);*/
 			}
 		}
 
@@ -487,7 +560,7 @@ class GameEngine : public olc::PixelGameEngine
 			projection[3][2] = (-fFar * fNear) / (fFar - fNear);
 			projection[2][3] = 1.0;
 			
-			Mesh m = Mesh();
+			/*Mesh m = Mesh();
 			
 			m.add(Triangle(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(1, 1, 0)));
 			m.add(Triangle(Vec3(0, 0, 0), Vec3(1, 1, 0), Vec3(1, 0, 0)));
@@ -524,7 +597,14 @@ class GameEngine : public olc::PixelGameEngine
 			Mesh prism = Mesh("simpleshape.obj");
 			prism.translate(Vec3(0, 2, 0));
 
-			addMesh(prism);
+			addMesh(prism);*/
+
+			Mesh test = Mesh();
+			test.add(Triangle());
+			test.translate(Vec3(0,0.5,0.5));
+			//test[0][0] = Vec3(0,0,0);
+			//test[0][1] = Vec3(0, 0, 0);
+			addMesh(test);
 
 			/*Mesh teapot = Mesh("teapot.obj");
 			teapot.translate(Vec3(0, 0, 5));
@@ -616,7 +696,7 @@ class GameEngine : public olc::PixelGameEngine
 				return dist1 > dist2;
 			});
 
-			generateFrame();
+			generateProjection();
 			distanceBuffer.clear();
 
 			/*std::vector<std::thread> vt;
