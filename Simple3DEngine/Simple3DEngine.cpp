@@ -526,7 +526,82 @@ class GameEngine : public olc::PixelGameEngine
 			}
 			else if (outIndexes.size() == 2)
 			{
-			
+				int inIndex = 0;
+				if (inIndex == outIndexes[0])
+					inIndex++;
+				if (inIndex == outIndexes[1])
+					inIndex++;
+
+				Vec3 p1, p2;
+				
+				if(t[outIndexes[0]].getX() < 0.0 && t[outIndexes[1]].getX() < 0.0)
+				{
+					Vec3 dirP1 = t[inIndex] - t[outIndexes[0]];
+					dirP1 /= dirP1.getY();
+					double mulP1 = t[outIndexes[0]].getX() / dirP1.getX();
+					p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+					p1.setX(0.0);
+
+					Vec3 dirP2 = t[inIndex] - t[outIndexes[1]];
+					dirP2 /= dirP2.getY();
+					double mulP2 = t[outIndexes[1]].getX() / dirP2.getX();
+					p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+					p2.setX(0.0);
+
+					Triangle _t = Triangle(t[inIndex],p2,p1 );
+					clipping(_t, lightIntensity);	
+				}
+				else if (t[outIndexes[0]].getY() < 0.0 && t[outIndexes[1]].getY() < 0.0)
+				{
+					Vec3 dirP1 = t[inIndex] - t[outIndexes[0]];
+					dirP1 /= dirP1.getX();
+					double mulP1 = t[outIndexes[0]].getY() / dirP1.getY();
+					p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+					p1.setY(0.0);
+
+					Vec3 dirP2 = t[inIndex] - t[outIndexes[1]];
+					dirP2 /= dirP2.getX();
+					double mulP2 = t[outIndexes[1]].getY() / dirP2.getY();
+					p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+					p2.setY(0.0);
+
+					Triangle _t = Triangle(t[inIndex], p2, p1);
+					clipping(_t, lightIntensity);
+				}
+				else if (t[outIndexes[0]].getX() > ScreenWidth() && t[outIndexes[1]].getX() > ScreenWidth())
+				{
+					Vec3 dirP1 = t[inIndex] - t[outIndexes[0]];
+					dirP1 /= dirP1.getY();
+					double mulP1 = (t[outIndexes[0]].getX() - ScreenWidth()) / dirP1.getX();
+					p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+					p1.setX(ScreenWidth());
+
+					Vec3 dirP2 = t[inIndex] - t[outIndexes[1]];
+					dirP2 /= dirP2.getY();
+					double mulP2 = (t[outIndexes[1]].getX() - ScreenWidth()) / dirP2.getX();
+					p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+					p2.setX(ScreenWidth());
+
+					Triangle _t = Triangle(t[inIndex], p2, p1);
+					clipping(_t, lightIntensity);
+				}
+				else if (t[outIndexes[0]].getY() > ScreenHeight() && t[outIndexes[1]].getY() > ScreenHeight())
+				{
+					Vec3 dirP1 = t[inIndex] - t[outIndexes[0]];
+					dirP1 /= dirP1.getX();
+					double mulP1 = (t[outIndexes[0]].getY() - ScreenHeight()) / dirP1.getY();
+					p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+					p1.setY(ScreenHeight());
+
+					Vec3 dirP2 = t[inIndex] - t[outIndexes[1]];
+					dirP2 /= dirP2.getX();
+					double mulP2 = (t[outIndexes[1]].getY() - ScreenHeight()) / dirP2.getY();
+					p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+					p2.setY(ScreenHeight());
+
+					Triangle _t = Triangle(t[inIndex], p2, p1);
+					clipping(_t, lightIntensity);
+				}
 			}
 			// If 1, delete one vertex, create two triangles
 			// If 2, delete two vertices, create only one triangle
@@ -680,7 +755,7 @@ class GameEngine : public olc::PixelGameEngine
 			Mesh test = Mesh();
 			test.add(Triangle());
 			test.translate(Vec3(0,0.5,0.5));
-			test[0][1] = Vec3(0,2,0);
+			test[0][1] = Vec3(-0.5,2,0);
 			//test[0][0] = Vec3(0,0,0);
 			//test[0][1] = Vec3(0, 0, 0);
 			addMesh(test);
