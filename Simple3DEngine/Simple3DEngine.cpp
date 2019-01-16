@@ -413,10 +413,6 @@ class GameEngine : public olc::PixelGameEngine
 					outIndexes.push_back(v);
 			}
 
-			std::cout << outIndexes.size() << std::endl;
-
-			// This will be a recursif function i guess, so i need to verify every possibilities
-			// If 0, ok
 			if (outIndexes.size() == 0)
 			{
 				FillTriangle(
@@ -429,7 +425,7 @@ class GameEngine : public olc::PixelGameEngine
 					olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
 				);
 
-				DrawTriangle(
+				/*DrawTriangle(
 					t[0].getX(),
 					t[0].getY(),
 					t[1].getX(),
@@ -437,7 +433,7 @@ class GameEngine : public olc::PixelGameEngine
 					t[2].getX(),
 					t[2].getY(),
 					olc::GREEN
-				);
+				);*/
 			}
 			else if (outIndexes.size() == 1)
 			{
@@ -524,7 +520,7 @@ class GameEngine : public olc::PixelGameEngine
 					clipping(t2, lightIntensity);
 				}
 			}
-			else if (outIndexes.size() == 2)
+			else if (outIndexes.size() == 2 || outIndexes.size() == 3)
 			{
 				int inIndex = 0;
 				if (inIndex == outIndexes[0])
@@ -533,8 +529,16 @@ class GameEngine : public olc::PixelGameEngine
 					inIndex++;
 
 				Vec3 p1, p2;
-				
-				if(t[outIndexes[0]].getX() < 0.0 && t[outIndexes[1]].getX() < 0.0)
+				if (
+					(t[0].getX() < 0.0 && t[1].getX() < 0.0 && t[2].getX() < 0.0) ||
+					(t[0].getY() < 0.0 && t[1].getY() < 0.0 && t[2].getY() < 0.0) ||
+					(t[0].getX() > ScreenWidth() && t[1].getX() > ScreenWidth() && t[2].getX() > ScreenWidth()) ||
+					(t[0].getY() > ScreenHeight() && t[1].getY() > ScreenHeight() && t[2].getY() > ScreenHeight())
+					)
+				{
+					return;
+				}
+				else if(t[outIndexes[0]].getX() < 0.0 && t[outIndexes[1]].getX() < 0.0)
 				{
 					Vec3 dirP1 = t[inIndex] - t[outIndexes[0]];
 					dirP1 /= dirP1.getY();
@@ -602,10 +606,130 @@ class GameEngine : public olc::PixelGameEngine
 					Triangle _t = Triangle(t[inIndex], p2, p1);
 					clipping(_t, lightIntensity);
 				}
+				else
+				{	
+					if (t[outIndexes[0]].getX() < 0.0)
+					{
+						Vec3 dirP1 = t[(outIndexes[0] + 1) % 3] - t[outIndexes[0]];
+						dirP1 /= dirP1.getY();
+						double mulP1 = t[outIndexes[0]].getX() / dirP1.getX();
+						p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+						p1.setX(0.0);
+
+						Vec3 dirP2 = t[(outIndexes[0] + 2) % 3] - t[outIndexes[0]];
+						dirP2 /= dirP2.getY();
+						double mulP2 = t[outIndexes[0]].getX() / dirP2.getX();
+						p2 = t[outIndexes[0]] - (dirP2 * mulP2);
+						p2.setX(0.0);
+
+						Triangle t1 = Triangle(t[(outIndexes[0] + 1) % 3], t[(outIndexes[0] + 2) % 3], p1);
+						Triangle t2 = Triangle(p2, p1, t[(outIndexes[0] + 2) % 3]);
+
+						clipping(t1, lightIntensity);
+						clipping(t2, lightIntensity);
+					}
+					else if (t[outIndexes[1]].getX() < 0.0)
+					{
+						Vec3 dirP1 = t[(outIndexes[1] + 1) % 3] - t[outIndexes[1]];
+						dirP1 /= dirP1.getY();
+						double mulP1 = t[outIndexes[1]].getX() / dirP1.getX();
+						p1 = t[outIndexes[1]] - (dirP1 * mulP1);
+						p1.setX(0.0);
+
+						Vec3 dirP2 = t[(outIndexes[1] + 2) % 3] - t[outIndexes[1]];
+						dirP2 /= dirP2.getY();
+						double mulP2 = t[outIndexes[1]].getX() / dirP2.getX();
+						p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+						p2.setX(0.0);
+
+						Triangle t1 = Triangle(t[(outIndexes[1] + 1) % 3], t[(outIndexes[1] + 2) % 3], p1);
+						Triangle t2 = Triangle(p2, p1, t[(outIndexes[1] + 2) % 3]);
+
+						clipping(t1, lightIntensity);
+						clipping(t2, lightIntensity);
+					}
+					else if (t[outIndexes[0]].getX() > ScreenWidth())
+					{
+						Vec3 dirP1 = t[(outIndexes[0] + 1) % 3] - t[outIndexes[0]];
+						dirP1 /= dirP1.getY();
+						double mulP1 = (t[outIndexes[0]].getX() - ScreenWidth()) / dirP1.getX();
+						p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+						p1.setX(ScreenWidth());
+
+						Vec3 dirP2 = t[(outIndexes[0] + 2) % 3] - t[outIndexes[0]];
+						dirP2 /= dirP2.getY();
+						double mulP2 = (t[outIndexes[0]].getX() - ScreenWidth()) / dirP2.getX();
+						p2 = t[outIndexes[0]] - (dirP2 * mulP2);
+						p2.setX(ScreenWidth());
+
+						Triangle t1 = Triangle(t[(outIndexes[0] + 1) % 3], t[(outIndexes[0] + 2) % 3], p1);
+						Triangle t2 = Triangle(p2, p1, t[(outIndexes[0] + 2) % 3]);
+
+						clipping(t1, lightIntensity);
+						clipping(t2, lightIntensity);
+					}
+					else if (t[outIndexes[1]].getX() > ScreenWidth())
+					{
+						Vec3 dirP1 = t[(outIndexes[1] + 1) % 3] - t[outIndexes[1]];
+						dirP1 /= dirP1.getY();
+						double mulP1 = (t[outIndexes[1]].getX() - ScreenWidth()) / dirP1.getX();
+						p1 = t[outIndexes[1]] - (dirP1 * mulP1);
+						p1.setX(ScreenWidth());
+
+						Vec3 dirP2 = t[(outIndexes[1] + 2) % 3] - t[outIndexes[1]];
+						dirP2 /= dirP2.getY();
+						double mulP2 = (t[outIndexes[1]].getX() - ScreenWidth()) / dirP2.getX();
+						p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+						p2.setX(ScreenWidth());
+
+						Triangle t1 = Triangle(t[(outIndexes[1] + 1) % 3], t[(outIndexes[1] + 2) % 3], p1);
+						Triangle t2 = Triangle(p2, p1, t[(outIndexes[1] + 2) % 3]);
+
+						clipping(t1, lightIntensity);
+						clipping(t2, lightIntensity);
+					}
+					else if (t[outIndexes[0]].getY() < 0.0) // Up
+					{
+						Vec3 dirP1 = t[(outIndexes[0] + 1) % 3] - t[outIndexes[0]];
+						dirP1 /= dirP1.getX();
+						double mulP1 = t[outIndexes[0]].getY() / dirP1.getY();
+						p1 = t[outIndexes[0]] - (dirP1 * mulP1);
+						p1.setY(0.0);
+
+						Vec3 dirP2 = t[(outIndexes[0] + 2) % 3] - t[outIndexes[0]];
+						dirP2 /= dirP2.getY();
+						double mulP2 = t[outIndexes[0]].getY() / dirP2.getY();
+						p2 = t[outIndexes[0]] - (dirP2 * mulP2);
+						p2.setY(0.0);
+
+						Triangle t1 = Triangle(t[(outIndexes[0] + 1) % 3], t[(outIndexes[0] + 2) % 3], p1);
+						Triangle t2 = Triangle(p2, p1, t[(outIndexes[0] + 2) % 3]);
+
+						clipping(t1, lightIntensity);
+						clipping(t2, lightIntensity);
+					}
+					else if (t[outIndexes[1]].getY() < 0.0) // Up
+					{
+						Vec3 dirP1 = t[(outIndexes[1] + 1) % 3] - t[outIndexes[1]];
+						dirP1 /= dirP1.getX();
+						double mulP1 = t[outIndexes[1]].getY() / dirP1.getY();
+						p1 = t[outIndexes[1]] - (dirP1 * mulP1);
+						p1.setY(0.0);
+
+						Vec3 dirP2 = t[(outIndexes[1] + 2) % 3] - t[outIndexes[1]];
+						dirP2 /= dirP2.getY();
+						double mulP2 = t[outIndexes[1]].getY() / dirP2.getY();
+						p2 = t[outIndexes[1]] - (dirP2 * mulP2);
+						p2.setY(0.0);
+
+						Triangle t1 = Triangle(t[(outIndexes[1] + 1) % 3], t[(outIndexes[1] + 2) % 3], p1);
+						Triangle t2 = Triangle(p2, p1, t[(outIndexes[1] + 2) % 3]);
+
+						clipping(t1, lightIntensity);
+						clipping(t2, lightIntensity);
+					}
+				}
 			}
-			// If 1, delete one vertex, create two triangles
-			// If 2, delete two vertices, create only one triangle
-			// if 3, just delete the triangle
 		}
 
 		void drawProjection(Triangle& tProjection, double lightIntensity)
@@ -634,7 +758,7 @@ class GameEngine : public olc::PixelGameEngine
 					olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
 				);
 
-				DrawTriangle(
+				/*DrawTriangle(
 						tProjection[0].getX(),
 						tProjection[0].getY(),
 						tProjection[1].getX(),
@@ -642,7 +766,7 @@ class GameEngine : public olc::PixelGameEngine
 						tProjection[2].getX(),
 						tProjection[2].getY(),
 						olc::GREEN
-					);
+					);*/
 			}
 		}
 
@@ -713,7 +837,7 @@ class GameEngine : public olc::PixelGameEngine
 			projection[3][2] = (-fFar * fNear) / (fFar - fNear);
 			projection[2][3] = 1.0;
 			
-			/*Mesh m = Mesh();
+			Mesh m = Mesh();
 			
 			m.add(Triangle(Vec3(0, 0, 0), Vec3(0, 1, 0), Vec3(1, 1, 0)));
 			m.add(Triangle(Vec3(0, 0, 0), Vec3(1, 1, 0), Vec3(1, 0, 0)));
@@ -750,15 +874,13 @@ class GameEngine : public olc::PixelGameEngine
 			Mesh prism = Mesh("simpleshape.obj");
 			prism.translate(Vec3(0, 2, 0));
 
-			addMesh(prism);*/
+			addMesh(prism);
 
-			Mesh test = Mesh();
+			/*Mesh test = Mesh();
 			test.add(Triangle());
 			test.translate(Vec3(0,0.5,0.5));
-			test[0][1] = Vec3(-0.5,2,0);
-			//test[0][0] = Vec3(0,0,0);
-			//test[0][1] = Vec3(0, 0, 0);
-			addMesh(test);
+			test[0][1] = Vec3(-0.5,5,0);
+			addMesh(test);*/
 
 			/*Mesh teapot = Mesh("teapot.obj");
 			teapot.translate(Vec3(0, 0, 5));
