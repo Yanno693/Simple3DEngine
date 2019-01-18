@@ -397,7 +397,7 @@ class GameEngine : public olc::PixelGameEngine
 					tPosition[t].rotateZ(-cameraRotation.getZ());
 				}
 
-				if (tPosition.normal().dot(tPosition[0]) < 0)
+				if (tPosition.normal().dot(tPosition[0]) < 0.0 && (tPosition[0].getZ() > 0.0 || tPosition[1].getZ() > 0.0 || tPosition[2].getZ() > 0.0))
 				{
 					distanceBuffer.push_back(tPosition);
 				}
