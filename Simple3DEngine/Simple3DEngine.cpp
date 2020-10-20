@@ -379,10 +379,10 @@ class GameEngine : public olc::PixelGameEngine
 					tScale[t].setZ(m.getTriangle(i)[t].getZ() * m.getScale().getZ());
 				}
 
-				/*for (unsigned int t = 0; t < 3; t++)
+				for (unsigned int t = 0; t < 3; t++)
 				{
 					tScale[t].rotateZ(delta * 0.5);
-				}*/
+				}
 				
 				Triangle tPosition = tScale;
 				for (unsigned int t = 0; t < 3; t++)
@@ -425,7 +425,7 @@ class GameEngine : public olc::PixelGameEngine
 					olc::Pixel(255 * lightIntensity, 255 * lightIntensity, 255 * lightIntensity)
 				);
 
-				/*DrawTriangle(
+				DrawTriangle(
 					t[0].getX(),
 					t[0].getY(),
 					t[1].getX(),
@@ -433,7 +433,7 @@ class GameEngine : public olc::PixelGameEngine
 					t[2].getX(),
 					t[2].getY(),
 					olc::GREEN
-				);*/
+				);
 			}
 			else if (outIndexes.size() == 1)
 			{
@@ -882,9 +882,9 @@ class GameEngine : public olc::PixelGameEngine
 			test[0][1] = Vec3(-0.5,5,0);
 			addMesh(test);*/
 
-			/*Mesh teapot = Mesh("teapot.obj");
+			Mesh teapot = Mesh("teapot.obj");
 			teapot.translate(Vec3(0, 0, 5));
-			addMesh(teapot);*/
+			addMesh(teapot);
 
 			return true;
 		}
